@@ -25,16 +25,62 @@ var CommentList = React.createClass({
 });
 
 var CommentForm = React.createClass({
+  getInitialState: function () {
+    return {
+      author: '',
+      text: ''
+    };
+  },
+
+  handleAuthorChange: function (event) {
+    this.setState({
+      author: event.target.value
+    });
+  },
+
+  handleTextChange: function (event) {
+    this.setState({
+      text: event.target.value
+    });
+  },
+
+  handleSubmit: function (event) {
+    event.preventDefault();
+    var author = this.state.author.trim();
+    var text = this.state.text.trim();
+    if (!text || !author) {
+      return;
+    }
+    this.props.onCommentSubmit({
+      author: author,
+      text: text
+    });
+    this.setState({
+      author: '',
+      text: ''
+    });
+  },
+
   render: function () {
     return (
-      <form className="comment-form">
+      <form className="comment-form" onSubmit={this.handleSubmit}>
         <div className="form-group">
           <label htmlFor="name">Author</label>
-          <input type="text" className="form-control" id="name" placeholder="Your name" />
+          <input value={this.state.author}
+                 onChange={this.handleAuthorChange}
+                 type="text"
+                 className="form-control"
+                 id="name"
+                 placeholder="Your name" />
         </div>
         <div className="form-group">
           <label htmlFor="comment">Comment</label>
-          <input type="text" className="form-control" id="comment" placeholder="Some comment..." />
+          <input value={this.state.text}
+                 onChange={this.handleTextChange}
+                 type="text"
+                 className="form-control"
+                 id="comment"
+                 placeholder="Some comment..." />
         </div>
         <button type="submit" className="btn btn-default">Post</button>
       </form>
@@ -64,6 +110,23 @@ var CommentBox = React.createClass({
     }
   },
 
+  handleCommentSubmit: function (comment) {
+    $.ajax({
+      url: this.props.url,
+      dataType: 'json',
+      type: 'POST',
+      data: comment,
+      success: function (data) {
+        var comments = this.state.data;
+        var newComments = comments.concat(data);
+        this.setState({ data: newComments });
+      }.bind(this),
+      error: function(xhr, status, err) {
+        console.error(this.props.url, status, err.toString());
+      }.bind(this)
+    });
+  },
+
   loadCommentsFromServer: function () {
     $.ajax({
       url: this.props.url,
@@ -90,7 +153,7 @@ var CommentBox = React.createClass({
     return (
       <div className="comment-box">
         <h1>Comments</h1>
-        <CommentForm />
+        <CommentForm onCommentSubmit={this.handleCommentSubmit} />
         <CommentList data={this.state.data} pollInterval={60000} />
       </div>
     );
